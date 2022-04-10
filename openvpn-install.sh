@@ -80,6 +80,7 @@ TUN needs to be enabled before running this installer."
 fi
 
 new_client () {
+	mkdir -p ~/OpenVPNConfig/
 	# Generates the custom client.ovpn
 	{
 	cat /etc/openvpn/server/client-common.txt
@@ -95,7 +96,7 @@ new_client () {
 	echo "<tls-crypt>"
 	sed -ne '/BEGIN OpenVPN Static key/,$ p' /etc/openvpn/server/tc.key
 	echo "</tls-crypt>"
-	} > ~/"$client".ovpn
+	} > ~/OpenVPNConfig/"$client".ovpn
 }
 
 if [[ ! -e /etc/openvpn/server/server.conf ]]; then
@@ -257,7 +258,7 @@ LimitNPROC=infinity" > /etc/systemd/system/openvpn-server@server.service.d/disab
 	openvpn --genkey --secret /etc/openvpn/server/tc.key
 	# Create the DH parameters file
 	./easyrsa gen-dh
-	mv ./dh.pem /etc/openvpn/server/dh.pem
+	mv /etc/openvpn/server/easy-rsa/pki/dh.pem /etc/openvpn/server/dh.pem
 	# Generate server.conf
 	echo "local $ip
 port $port
@@ -270,7 +271,8 @@ dh dh.pem
 auth SHA512
 tls-crypt tc.key
 topology subnet
-server 10.8.0.0 255.255.255.0" > /etc/openvpn/server/server.conf
+server 10.8.0.0 255.255.255.0
+comp-lzo" > /etc/openvpn/server/server.conf
 	# IPv6
 	if [[ -z "$ip6" ]]; then
 		echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server/server.conf
@@ -419,7 +421,8 @@ auth SHA512
 cipher AES-256-CBC
 ignore-unknown-option block-outside-dns
 block-outside-dns
-verb 3" > /etc/openvpn/server/client-common.txt
+verb 3
+comp-lzo" > /etc/openvpn/server/client-common.txt
 	# Enable and start the OpenVPN service
 	systemctl enable --now openvpn-server@server.service
 	# Generates the custom client.ovpn
@@ -427,7 +430,7 @@ verb 3" > /etc/openvpn/server/client-common.txt
 	echo
 	echo "Finished!"
 	echo
-	echo "The client configuration is available in:" ~/"$client.ovpn"
+	echo "The client configuration is available in:" ~/OpenVPNConfig/"$client.ovpn"
 	echo "New clients can be added by running this script again."
 else
 	clear
@@ -459,7 +462,7 @@ else
 			# Generates the custom client.ovpn
 			new_client
 			echo
-			echo "$client added. Configuration available in:" ~/"$client.ovpn"
+			echo "$client added. Configuration available in:" ~/OpenVPNConfig/"$client.ovpn"
 			exit
 		;;
 		2)
